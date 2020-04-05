@@ -1,20 +1,15 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
+use std::io::{stdin, Read};
+use std::str::FromStr;
 
 fn main() {
-    let state = State::new(
-        (0, 0),
-        vec![Ball::new(1, 3, 4), Ball::new(2, 3, 1), Ball::new(1, 4, 2)],
-        r#"
-        ....
-        ##..
-        ##..
-        ....
-        ...#
-        ...#
-        "#,
-    );
+    let mut buf = Vec::new();
+    stdin().read_to_end(&mut buf).unwrap();
+    let lines: Vec<_> = std::str::from_utf8(&buf).unwrap().lines().collect();
+    let state = State::from_lines(&lines);
+
     let mut visited = HashSet::new();
     let mut queue = VecDeque::new();
     queue.push_back(state);
@@ -48,7 +43,7 @@ fn main() {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone)]
 struct State {
     width: usize,
     height: usize,
@@ -66,18 +61,28 @@ struct Concise {
 }
 
 impl State {
-    fn new(player: (i32, i32), balls: Vec<Ball>, grounds: &str) -> State {
+    fn from_lines(lines: &[&str]) -> State {
+        let player_x = i32::from_str(lines[0]).expect("invalid x position");
+        let player_y = i32::from_str(lines[1]).expect("invalid y position");
+        let mut balls = Vec::new();
         let mut ground_lines = Vec::new();
-        for line in grounds.trim().lines() {
+        for (y, line) in lines[2..].iter().enumerate() {
             let mut ground_line = Vec::new();
-            for char in line.trim().chars() {
+            for (x, char) in line.trim().chars().enumerate() {
                 let ground = match char {
                     '.' => Ground::None,
                     '_' => Ground::Snow,
                     '#' => Ground::Block,
-                    _ => unreachable!(),
+                    '1' | '2' | '4' => {
+                        balls.push(Ball {
+                            size: char.to_digit(10).unwrap() as u8,
+                            pos: (x as i32, y as i32),
+                        });
+                        Ground::None
+                    }
+                    _ => panic!("invalid char"),
                 };
-                ground_line.push(ground)
+                ground_line.push(ground);
             }
             ground_lines.push(ground_line);
         }
@@ -86,7 +91,7 @@ impl State {
             height: ground_lines.len(),
             ground: ground_lines.into_iter().flatten().collect(),
             balls,
-            player,
+            player: (player_x, player_y),
             directions: Vec::new(),
         }
     }
@@ -293,19 +298,6 @@ enum Ground {
 struct Ball {
     size: u8,
     pos: (i32, i32),
-}
-
-impl Ball {
-    fn new(x: i32, y: i32, size: u8) -> Ball {
-        Ball { size, pos: (x, y) }
-    }
-}
-
-struct Limits {
-    left: usize,
-    right: usize,
-    up: usize,
-    down: usize,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
