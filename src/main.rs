@@ -3,13 +3,28 @@ use std::collections::{BinaryHeap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::io::{stdin, Read};
 use std::str::FromStr;
+use std::thread::sleep;
+use std::time::Duration;
 
 fn main() {
     let mut buf = Vec::new();
     stdin().read_to_end(&mut buf).unwrap();
     let lines: Vec<_> = std::str::from_utf8(&buf).unwrap().lines().collect();
-    let state = State::from_lines(&lines);
+    let initlal = State::from_lines(&lines);
+    let solved = solve(initlal.clone()).unwrap();
 
+    let mut state = initlal;
+    for (index, direction) in solved.directions {
+        print!("{esc}[2J{esc}[1;1H", esc = 27 as char); // clear and position cursor 1,1
+        print!("{}", state);
+        sleep(Duration::from_secs(1));
+        state.step_ball(index, direction);
+    }
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char); // clear and position cursor 1,1
+    print!("{}", state);
+}
+
+fn solve(state: State) -> Result<State, &'static str> {
     let mut visited = HashSet::new();
     let mut queue = VecDeque::new();
     queue.push_back(state);
@@ -19,8 +34,7 @@ fn main() {
             .iter()
             .all(|ball| ball.pos == state.balls[0].pos)
         {
-            println!("{}", state);
-            return;
+            return Ok(state);
         }
         let concise = state.concise();
         if visited.contains(&concise) {
@@ -41,6 +55,8 @@ fn main() {
             }
         }
     }
+
+    return Err("Not solvable");
 }
 
 #[derive(Clone)]
